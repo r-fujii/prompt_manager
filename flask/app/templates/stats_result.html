@@ -1,0 +1,58 @@
+<div class="d-flex justify-content-center">
+    <div class="d-flex flex-column" style="width: 70%">
+        {% for metric_name, value_dict in metric_values.items() %}
+            <h4 class="my-2">{{ metric_name }}</h4>
+            <div class="d-flex justify-content-center">
+                <div style="max-width: 600px">
+                    <img src="data:image/svg+xml;base64,{{ value_dict['fig'] }}" width="100%">
+                </div>
+            </div>
+            <div class="table-responsive my-2">
+                <table class="table table-hover" style="font-size: 70%;">
+                    <tr class="thead">
+                        <th></th>
+                        {% for header in value_dict['tab'][0] %}
+                            <th>{{ header }}</th>
+                        {% endfor %}
+                    </tr>
+                    {% for elem_id, metric_values in value_dict['tab'][1].items() %}
+                    <tr>
+                        <td>#{{ elem_id }}</td>
+                        {% for metric, value in metric_values.items() %}
+                            <td data-label={{ metric }}>{{ "%.2f" | format(value) }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<hr>
+
+<div class="accordion my-4" id="promptAccordion">
+    {% for elem_id, (prompt, completions) in prompt_completions_dict.items() %}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="accordion-head-{{ elem_id }}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-body-{{ elem_id }}" aria-expanded="false" aria-controls="accordion-body-{{ elem_id }}">
+                    Prompt #{{ elem_id }}
+                </button>
+            </h2>
+            <div id="accordion-body-{{ elem_id }}" class="accordion-collapse collapse" aria-labelledby="accordion-head-{{ elem_id }}">
+                <div class="accordion-body pb-{{ elem_id }}">
+                    <p style="white-space: pre-wrap; font-size: small">{{ prompt }}
+                    
+{{ user_message }}</p>
+                    <hr>
+                    <ul>
+                        {% for completion in completions %}
+                            <li><p style="white-space: pre-wrap; font-size: small">Response #{{ loop.index }} :
+{{ completion }}</p></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>

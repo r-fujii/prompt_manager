@@ -1,0 +1,14 @@
+version: '3'
+services:
+  nginx:
+    image: nginx:1.24.0
+    ports:
+      - "5050:5050"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+  app:
+    build: ./flask
+    volumes:
+      - "./flask/app:/app"
+    env_file:
+      - .env
