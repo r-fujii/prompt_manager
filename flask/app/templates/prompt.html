@@ -1,0 +1,124 @@
+<html>
+    <head>
+        <title>Prompt Manager</title>
+    </head>
+
+    <!-- settings modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title ms-2" id="settingsModalLabel">Settings</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex flex-column align-items-center">
+                        <div class="d-flex flex-column m-2" style="width: 90%">
+                            <p class="m-0">Common settings :</p>
+                            <textarea id="commonSettingsArea" class="form-control my-2" style="height: 12rem;" placeholder="You can set how your system should act throughout the prompts. (Optional)" minlength="1" maxlength="1024">{% if session.get('common_settings') -%} {{ session['common_settings'] }} {%- endif %}</textarea>
+                        </div>
+                        <div class="d-flex flex-row align-items-center m-2" style="width: 90%; gap: 0.5rem;">
+                            <p class="m-0">Temperature :</p>
+                            <input type="range" min="0" max="2.00" {% if session.get('temperature') %} value="{{ '%.2f' | format(session['temperature']) }}" {% else %} value="1.00" {% endif %} step="0.01" onchange="writeValueAt('temperatureRange', this.value)" size="1" style="flex: auto;">
+                            <input id="temperatureRange" type="text" {% if session.get('temperature') %} value="{{ '%.2f' | format(session['temperature']) }}" {% else %} value="1.00" {% endif %} readonly="readonly" style="font-size: 150%; width: 60px; border: none; outline: none;">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="saveSettings()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <body>
+        <div class="d-flex p-3 px-md-4 mb-3 shadow-sm">
+            <h5 class="my-0">Prompt Manager</h5>
+            <button type="button" class="ms-auto" data-bs-toggle="modal" data-bs-target="#settingsModal" style="background: transparent; border: none;">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        </div>
+        <div class="container-md">
+            <div class="mt-1 mb-3 mx-2">
+                <div class="d-flex flex-row align-items-center mb-2">
+                    <p id="tabLabel" class="my-0">Write new prompt :</p>
+                    <div class="d-flex flex-row align-items-center ms-auto">
+                        <p class="my-0"><small>Message Mode :</small></p>
+                        <div id="tabToggle" class="toggle ms-2">
+                            <input type="checkbox" name="check">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-content" style="width: 100%;">
+                    <div id="promptTab" class="tab-pane active">
+                        <div class="d-flex flex-row">
+                            <div style="width: 100%">
+                                <textarea id="promptArea" class="form-control my-2" style="height: 12rem;" placeholder="Input your prompt here" minlength="1" maxlength="1024"></textarea>
+                            </div>
+                            <div class="d-flex no-wrap align-items-end my-2 ps-4">
+                                <button type="button" class="btn btn-md btn-outline-primary mx-1 text-nowrap" onclick="addPrompt();">Add</button>
+                                <button type="button" class="btn btn-md btn-outline-success mx-1 text-nowrap" onclick="countTokens();">Count tokens</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="userMessageTab" class="tab-pane">
+                        <div class="d-flex flex-row">
+                            <div style="width: 100%">
+                                <textarea id="userMessageArea" class="form-control my-2" style="height: 12rem;" placeholder="Input your message here" minlength="1" maxlength="1024"></textarea>
+                            </div>
+                            <div class="d-flex no-wrap align-items-end my-2 ps-4">
+                                <button type="button" class="btn btn-md btn-outline-primary mx-1 text-nowrap" onclick="postMessage();">Run</button>
+                                <button type="button" class="btn btn-md btn-outline-success mx-1 text-nowrap" onclick="getStats();">Get stats</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="container-md">
+            <div class="mx-2">
+                <p>Prompts :</p>
+            </div> 
+            <div id="cardArea" class="card-deck mb-3">
+                <div id="card-example" class="card mb-3 shadow-sm">
+                    <div class="card-header">
+                        <h5 class="my-0 ms-2">Example</h4>
+                    </div>
+                    <div class="card-body d-flex flex-row my-1 mx-2">
+                        <div>
+                            <p id="prompt-example" class="prompt-example" style="white-space: pre-wrap; font-size: small">Summarize the following text within 100 words.
+
+###</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+        <link rel="stylesheet" href="../static/css/all.min.css">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+        <script type="text/javascript" src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+        <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-3.6.4.min.js') }}"></script>
+        
+        {% if init_flg %}
+            <script type="text/javascript">
+                $(window).on('load', function() {
+                    $("#settingsModal").modal("show");
+                });
+            </script>
+        {% endif %}
+
+        <script type="text/javascript">
+            const MESSAGE_API_URL = "{{ url_for('post_messages') }}";
+            const COUNT_API_URL = "{{ url_for('count_tokens') }}";
+            const STATS_URL = "{{ url_for('stats') }}";
+            const STATS_API_URL = "{{ url_for('get_stats') }}";
+            const SAVE_SETTINGS_URL = "{{ url_for('save_settings') }}";
+        </script>
+        <script type="text/javascript" src="{{ url_for('static', filename='js/chat.js') }}"></script>
+    </body>
+</html>
